@@ -131,7 +131,7 @@ function(get_latest_release_version owner repo output_variable)
     file(READ "${json_file}" json_content)
     string(JSON tag_name ERROR_VARIABLE json_error GET "${json_content}" "tag_name")
     
-    if(DEFINED json_error)
+    if(NOT json_error STREQUAL "NOTFOUND")
         message(STATUS "Using fallback version")
         set(${output_variable} "v2025.04.10" PARENT_SCOPE) # Fallback to a known version
     else()
