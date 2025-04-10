@@ -39,6 +39,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-poetry-
 
+      - name: Generate poetry.lock
+        run: poetry lock
+
       - name: Install dependencies
         run: poetry install
 
