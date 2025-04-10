@@ -43,7 +43,7 @@ jobs:
         run: poetry lock
 
       - name: Install dependencies
-        run: poetry install
+        run: poetry install --no-root
 
       - name: Cache Win32 docs repository
         uses: actions/cache@v3
