@@ -4,7 +4,7 @@ C++ header generator for AD schema attributes
 
 import re
 import sys
-from typing import List, Dict, Any, TextIO
+from typing import List, TextIO
 
 from src.models import ADAttribute
 
@@ -62,7 +62,7 @@ class CppGenerator:
 
     def _write_schema_entities(self, f: TextIO, attributes: List[ADAttribute]) -> None:
         """Writes the schema entities array to the file."""
-        f.write("constexpr ADSchemaEntity schemaEntities[] = {\n")
+        f.write("static inline constexpr ADSchemaEntity schemaEntities[] = {\n")
         for attr in attributes:
             data = attr.schema_data
 
@@ -96,7 +96,7 @@ class CppGenerator:
     def _write_mapping(self, f: TextIO, attributes: List[ADAttribute]) -> None:
         """Writes the mapping from enum values to entities."""
         f.write(
-            "const std::unordered_map<OidType, const ADSchemaEntity&> oidToEntityMapping = {\n"
+            "static inline const std::unordered_map<OidType, const ADSchemaEntity&> oidToEntityMapping = {\n"
         )
         for i, attr in enumerate(attributes):
             f.write(f"    {{ OidType::{attr.display_name}, schemaEntities[{i}] }},\n")
