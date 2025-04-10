@@ -1,0 +1,116 @@
+name: Monthly AD Schema Release
+
+on:
+  schedule:
+    # Run on the first day of each month at 00:00 UTC
+    - cron: '0 0 1 * *'
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Setup Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.7.0
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Cache Win32 docs repository
+        uses: actions/cache@v3
+        with:
+          path: win32_repo
+          key: ${{ runner.os }}-win32-docs-${{ hashFiles('src/repo/git_manager.py') }}
+          restore-keys: |
+            ${{ runner.os }}-win32-docs-
+
+      - name: Install Poetry dependencies
+        run: poetry install
+
+      - name: Install Git
+        run: sudo apt-get update && sudo apt-get install -y git
+
+      - name: Run Python script to generate HPP file
+        run: |
+          echo "Running Python script to generate AD_SCHEMA_ATTRIBUTES.hpp..."
+          poetry run python main.py
+          
+          if [ $? -ne 0 ]; then
+            echo "Python script execution failed!"
+            exit 1
+          else
+            if [ -f "AD_SCHEMA_ATTRIBUTES.hpp" ]; then
+              echo "AD_SCHEMA_ATTRIBUTES.hpp successfully generated."
+              echo "File size: $(wc -c < AD_SCHEMA_ATTRIBUTES.hpp) bytes"
+              echo "Line count: $(wc -l < AD_SCHEMA_ATTRIBUTES.hpp) lines"
+            else
+              echo "AD_SCHEMA_ATTRIBUTES.hpp was not generated!"
+              exit 1
+            fi
+          fi
+
+      - name: Install C++ build tools
+        run: sudo apt-get update && sudo apt-get install -y build-essential
+
+      - name: Compile and test C++ code
+        run: |
+          echo "Compiling test_ad_schema.cpp..."
+          g++ -o test_ad_schema test_ad_schema.cpp -std=c++17
+          
+          if [ $? -ne 0 ]; then
+            echo "Compilation failed!"
+            exit 1
+          else
+            echo "Compilation successful. Running tests..."
+            ./test_ad_schema
+            
+            if [ $? -ne 0 ]; then
+              echo "Tests failed!"
+              exit 1
+            else
+              echo "Tests passed successfully!"
+            fi
+          fi
+
+      - name: Get current date
+        id: date
+        run: echo "DATE=$(date +'%Y.%m.%d')" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: AD Schema Attributes v${{ steps.date.outputs.DATE }}
+          tag_name: v${{ steps.date.outputs.DATE }}
+          draft: false
+          prerelease: false
+          body: |
+            Monthly release of AD_SCHEMA_ATTRIBUTES.hpp
+            
+            Version: ${{ steps.date.outputs.DATE }}
+            
+            This file was automatically generated using the latest Microsoft documentation and tested with the C++ test suite.
+          files: |
+            AD_SCHEMA_ATTRIBUTES.hpp 

@@ -71,3 +71,20 @@ ad_attributes_scraper/
 ## License
 
 Cycraft 
+
+## Automated Releases
+
+This repository is configured with a GitHub Actions workflow that automatically creates a new release on the first day of each month. Each release:
+
+- Is tagged with the version format `vYYYY.MM.DD` (year.month.day)
+- Contains the latest `AD_SCHEMA_ATTRIBUTES.hpp` file
+- Can be accessed from the [Releases](https://github.com/cycraft/ad_attributes_scraper/releases) page
+
+To manually trigger a release, you can:
+
+1. Go to the Actions tab in the GitHub repository
+2. Select the "Monthly AD Schema Release" workflow
+3. Click "Run workflow"
+4. Confirm to trigger the release
+
+The generated `AD_SCHEMA_ATTRIBUTES.hpp` file can then be included in your C++ projects. 
