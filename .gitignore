@@ -1,11 +1,41 @@
-win32_repo
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.env/
+
+# Repository
+win32_repo/
+
+# Generated files
+AD_SCHEMA_ATTRIBUTES.hpp
 ad_schema_attributes.json
 attributes_list.md
-AD_SCHEMA_ATTRIBUTES.h
-__pycache__/*
-*.pyc
-*.pyo
-*.pyd
-*.pyw
-*.pyz
-*.pywz
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo

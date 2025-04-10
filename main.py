@@ -1,63 +1,55 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 # file: main.py
 
 import sys
-from modules.attributes_scraper import AttributesScraper
-from modules.schema_parser import (
-    parse_attributes_from_markdown,
-    process_schema_files,
-    save_schema_data_to_json,
-)
-from modules.header_generator import generate_header
-from modules.repo_handler import RepoManager
-
-
-def generate_markdown(attributes: list, output_file: str = "attributes_list.md"):
-    """
-    Generates a Markdown file with a list of attributes.
-    Each entry is written as a Markdown link.
-    """
-    try:
-        with open(output_file, "w", encoding="utf-8") as f:
-            f.write(
-                f"## Active Directory Schema Attributes ({len(attributes)} Found)\n\n"
-            )
-            f.write("-" * 40 + "\n")
-            for name, link_url in attributes:
-                f.write(f"- [{name}]({link_url})\n")
-            f.write("-" * 40 + "\n")
-        print(f"Markdown file generated at {output_file}")
-    except IOError as e:
-        print(f"Error writing to file {output_file}: {e}", file=sys.stderr)
+from src.scraper.web_scraper import AttributesScraper
+from src.repo.git_manager import RepoManager
+from src.parser.schema_parser import SchemaParser
+from src.generator.cpp_generator import CppGenerator
 
 
 def main():
+    """
+    Main function that orchestrates the AD attribute scraping process.
+    Steps:
+    1. Scrape attributes from Microsoft Learn
+    2. Clone/update the repository
+    3. Parse schema files for each attribute
+    4. Generate C++ header file
+    """
     # Step 1: Scrape the attribute list from Microsoft Learn
     target_url = (
         "https://learn.microsoft.com/en-us/windows/win32/adschema/attributes-all"
     )
+    print("Step 1: Scraping attribute list from Microsoft Learn...")
     scraper = AttributesScraper(target_url)
-    details_list = scraper.get_formatted_attribute_list()
-    if not details_list:
+    attributes = scraper.fetch_attributes()
+    if not attributes:
         print("Failed to fetch attribute list. Exiting.", file=sys.stderr)
         sys.exit(1)
-    markdown_file = "attributes_list.md"
-    generate_markdown(details_list, markdown_file)
+    print(f"Found {len(attributes)} attributes.")
 
-    # Step 1.5: Automatically clone the repository and get the schema directory.
+    # Step 2: Setup the repository and get the schema directory
+    print("\nStep 2: Setting up the repository...")
     repo_manager = RepoManager()
-    repo_manager.clone_repo()
-    schema_dir = repo_manager.get_schema_dir()
+    schema_dir = repo_manager.ensure_repo_exists()
+    print(f"Schema directory: {schema_dir}")
 
-    # Step 2 & 3: Process the Markdown to produce schema JSON data
-    attributes = parse_attributes_from_markdown(markdown_file)
-    schema_data = process_schema_files(attributes, schema_dir)
-    json_file = "ad_schema_attributes.json"
-    save_schema_data_to_json(schema_data, json_file)
+    # Step 3: Parse schema files for each attribute
+    print("\nStep 3: Parsing schema files...")
+    schema_parser = SchemaParser()
+    processed_attributes = schema_parser.parse_schema_files(attributes, schema_dir)
+    print(
+        f"Successfully processed {len(processed_attributes)} attributes with schema data."
+    )
 
-    # Step 4: Generate C++ header from the JSON data
+    # Step 4: Generate the C++ header file
+    print("\nStep 4: Generating C++ header file...")
     header_file = "AD_SCHEMA_ATTRIBUTES.hpp"
-    generate_header(json_file, header_file)
+    cpp_generator = CppGenerator()
+    cpp_generator.generate_header(processed_attributes, header_file)
+    print(f"Successfully generated header file: {header_file}")
+    print("\nDone!")
 
 
 if __name__ == "__main__":
