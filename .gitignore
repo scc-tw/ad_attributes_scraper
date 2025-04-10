@@ -1,0 +1,11 @@
+win32_repo
+ad_schema_attributes.json
+attributes_list.md
+AD_SCHEMA_ATTRIBUTES.h
+__pycache__/*
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
