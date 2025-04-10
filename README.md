@@ -30,25 +30,22 @@ The generated `AD_SCHEMA_ATTRIBUTES.hpp` file provides:
 
 2. Install dependencies:
    ```bash
-   # Using Poetry (recommended)
    poetry install
-
-   # OR using pip
-   pip install -r requirements.txt
    ```
 
 3. Run the script:
    ```bash
-   # Using Poetry
-   poetry run scraper
-
-   # OR using Python directly
    python main.py
    ```
 
 4. Find your generated header in the root directory: `AD_SCHEMA_ATTRIBUTES.hpp`
 
 ## 🔧 Adding to Your C++ Project
+
+### Requirements
+
+- C++17 or later
+- CMake 3.14 or later (for automatic updates)
 
 ### With CMake (Recommended)
 
@@ -199,6 +196,7 @@ ad_attributes_scraper/
 │   └── models.py             # Data models
 ├── main.py                   # Main entry point
 ├── pyproject.toml            # Project configuration
+├── LICENSE.txt               # License
 └── README.md                 # This file
 ```
 
