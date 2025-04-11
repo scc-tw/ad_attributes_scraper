@@ -44,7 +44,8 @@ The generated `AD_SCHEMA_ATTRIBUTES.hpp` file provides:
 
 ### Requirements
 
-- C++17 or later
+- C++20 or later (due to Designated Initializers since C++20, std::string_iew since C++17, static inline to against ODR-used)
+  - If you're only using features like `std::unordered_map` and `constexpr`, you can downgrade to C++11. However, C++20 is recommended for its enhanced capabilities.
 - CMake 3.14 or later (for automatic updates)
 
 ### With CMake (Recommended)
