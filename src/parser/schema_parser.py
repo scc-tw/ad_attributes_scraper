@@ -28,43 +28,79 @@ class SchemaParser:
         processed_attributes = []
 
         for attr in attributes:
-            filename = f"a-{attr.raw_name}.md"
-            file_path = os.path.join(schema_dir, filename)
+            # Documentation stores attribute pages under "a-" and class pages under
+            # "c-".  We first look for the attribute style file and, if not
+            # found, fall back to the class style file.
 
-            if os.path.exists(file_path):
-                with open(file_path, "r", encoding="utf-8") as f:
-                    content = f.read()
+            possible_filenames = [f"a-{attr.raw_name}.md", f"c-{attr.raw_name}.md"]
 
-                schema_data = self.parse_table_to_dict(content)
-                if schema_data:
-                    attr.schema_data = schema_data
-                    processed_attributes.append(attr)
+            file_path: Optional[str] = None
+            for fname in possible_filenames:
+                candidate = os.path.join(schema_dir, fname)
+                if os.path.exists(candidate):
+                    file_path = candidate
+                    break
+
+            if file_path is None:
+                continue  # No schema doc found – skip this attribute
+
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            schema_data = self.parse_table_to_dict(content)
+            if schema_data:
+                attr.schema_data = schema_data
+                processed_attributes.append(attr)
 
         return processed_attributes
 
     def parse_table_to_dict(self, content: str) -> Optional[Dict[str, Any]]:
         """
-        Parses a Markdown table with Entry|Value format into a dictionary.
-        Returns None if the table cannot be found or parsed.
+        Parses ALL Markdown tables with an Entry|Value format into a single
+        dictionary. Some schema pages contain additional metadata (for example
+        *Governs-Id*) in subsequent tables rather than the first one.  By
+        iterating over *all* matching tables we ensure those fields are
+        captured.
+
+        If a key already exists we **keep the first occurrence** (usually the
+        first table found near the top of the document) to avoid unintentionally
+        overriding core fields such as *CN* or *Ldap-Display-Name* that may be
+        repeated for different Windows versions.
+
+        Special case:  Some class definition pages expose the relevant OID in a
+        *Governs-Id* field instead of *Attribute-Id*.  For convenience - and to
+        maintain compatibility with the rest of the code-base - we copy the
+        value from *Governs-Id* to *Attribute-Id* when the latter is missing.
         """
-        table_match = self.table_pattern.search(content)
-        if not table_match:
+
+        matches = list(self.table_pattern.finditer(content))
+        if not matches:
             return None
 
-        table_content = table_match.group(1)
-        attr_dict = {}
+        attr_dict: Dict[str, Any] = {}
 
-        for line in table_content.strip().split("\n"):
-            parts = [p.strip() for p in line.split("|")]
-            if len(parts) >= 3:
+        for match in matches:
+            table_content = match.group(1)
+
+            for line in table_content.strip().split("\n"):
+                parts = [p.strip() for p in line.split("|")]
+                if len(parts) < 3:
+                    continue
+
                 key = parts[1]
                 value = parts[2]
 
                 # Process the value
-                value = self._process_value(key, value)
-                attr_dict[key] = value
+                processed_value = self._process_value(key, value)
 
-        # Add markdown_link field for compatibility with existing code
+                # Preserve the first occurrence of each key
+                if key not in attr_dict:
+                    attr_dict[key] = processed_value
+
+        # If Attribute-Id is missing but Governs-Id is present, use it.
+        if "Attribute-Id" not in attr_dict and "Governs-Id" in attr_dict:
+            attr_dict["Attribute-Id"] = attr_dict["Governs-Id"]
+
         return attr_dict
 
     def _process_value(self, key: str, value: str) -> Any:

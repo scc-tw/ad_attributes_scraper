@@ -58,17 +58,21 @@ class AttributesScraper:
                 href = link.get("href")
                 link_text = link.get_text(strip=True)
 
-                # Only select links with hrefs starting with "a-" and which do not include "/" or ":"
+                # Accept both attribute pages ("a-") and class pages ("c-")
                 if (
                     href
-                    and href.startswith("a-")
+                    and (href.startswith("a-") or href.startswith("c-"))
                     and "/" not in href
                     and ":" not in href
                     and link_text
                 ):
-                    display_name = link_text.replace("-", "_")
+                    # Convert the link text into a C++-safe identifier by replacing
+                    # dashes and whitespace with underscores.
+                    display_name = link_text.replace("-", "_").replace(" ", "_")
+
                     absolute_url = urljoin(self.url, href)
-                    raw_name = href[2:]  # Remove "a-" prefix
+                    # Remove the prefix (a- or c-)
+                    raw_name = href[2:]
 
                     attributes.append(
                         ADAttribute(

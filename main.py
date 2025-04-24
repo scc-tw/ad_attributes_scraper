@@ -17,17 +17,34 @@ def main():
     3. Parse schema files for each attribute
     4. Generate C++ header file
     """
-    # Step 1: Scrape the attribute list from Microsoft Learn
-    target_url = (
-        "https://learn.microsoft.com/en-us/windows/win32/adschema/attributes-all"
-    )
-    print("Step 1: Scraping attribute list from Microsoft Learn...")
-    scraper = AttributesScraper(target_url)
-    attributes = scraper.fetch_attributes()
-    if not attributes:
-        print("Failed to fetch attribute list. Exiting.", file=sys.stderr)
+    # Step 1: Scrape the attribute and class lists from Microsoft Learn
+    print("Step 1: Scraping attribute and class lists from Microsoft Learn...")
+
+    list_pages = [
+        "https://learn.microsoft.com/en-us/windows/win32/adschema/attributes-all",
+        "https://learn.microsoft.com/en-us/windows/win32/adschema/classes-all",
+    ]
+
+    all_attributes = []
+    for page_url in list_pages:
+        print(f"Fetching list page: {page_url}")
+        scraper = AttributesScraper(page_url)
+        page_attrs = scraper.fetch_attributes()
+        print(f"  -> Retrieved {len(page_attrs)} entries from this page.")
+        all_attributes.extend(page_attrs)
+
+    if not all_attributes:
+        print("Failed to fetch any attribute/class list. Exiting.", file=sys.stderr)
         sys.exit(1)
-    print(f"Found {len(attributes)} attributes.")
+
+    # Deduplicate by raw_name to avoid collisions between attribute and class pages
+    unique_attr_map = {}
+    for attr in all_attributes:
+        if attr.raw_name not in unique_attr_map:
+            unique_attr_map[attr.raw_name] = attr
+
+    attributes = list(unique_attr_map.values())
+    print(f"Found {len(attributes)} unique attributes/classes.")
 
     # Step 2: Setup the repository and get the schema directory
     print("\nStep 2: Setting up the repository...")
